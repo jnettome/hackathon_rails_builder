@@ -18,11 +18,9 @@ class AppBuilder < Rails::AppBuilder
     # User records
     @generator.gem "devise"
     @generator.gem "omniauth-twitter"
-    @generator.gem "omniauth-facebook"
     # Social Media
     @generator.gem "twitter"
     @generator.gem "twitter-text"
-    @generator.gem "koala"
     # Money
     @generator.gem "stripe"
     # Development tools
@@ -39,7 +37,6 @@ class AppBuilder < Rails::AppBuilder
     @generator.gem "guard-spork", group: [:test]
     @generator.gem "guard-jasmine", group: [:test]
     @generator.gem "guard-livereload", group: [:test]
-    run 'bundle install'
   end
 
   def test
@@ -47,6 +44,9 @@ class AppBuilder < Rails::AppBuilder
   end
   
   def leftovers
+    # Get the gems
+    run 'bundle install'
+
     # Setting up the Testing Environment
     generate 'rspec:install'
     run 'spork rspec --bootstrap'
