@@ -48,9 +48,9 @@ class AppBuilder < Rails::AppBuilder
     run 'bundle install'
 
     # Add Configuration for Ember
-    gsub_file 'config/environments/development.rb', /end/, "  config.ember.variant = :development
+    gsub_file 'config/environments/development.rb', /\Aend\z/, "  config.ember.variant = :development
 end"
-    gsub_file 'config/environments/production.rb', /end/, "  config.ember.variant = :production
+    gsub_file 'config/environments/production.rb', /\Aend\z/, "  config.ember.variant = :production
 end"
 
     # Setting up the Testing Environment
