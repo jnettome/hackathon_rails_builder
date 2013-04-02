@@ -47,6 +47,12 @@ class AppBuilder < Rails::AppBuilder
     # Get the gems
     run 'bundle install'
 
+    # Add Configuration for Ember
+    gsub_file 'config/environments/development.rb', /end/, "  config.ember.variant = :development
+end"
+    gsub_file 'config/environments/production.rb', /end/, "  config.ember.variant = :production
+end"
+
     # Setting up the Testing Environment
     generate 'rspec:install'
     run 'spork rspec --bootstrap'
@@ -66,6 +72,7 @@ end
     RUBY
     remove_file 'spec/spec_helper.rb'
     create_file 'spec/spec_helper.rb', <<-RUBY
+require 'spork'
 Spork.prefork do
   # This file is copied to spec/ when you run 'rails generate rspec:install'
   ENV["RAILS_ENV"] ||= 'test'
