@@ -48,7 +48,7 @@ class AppBuilder < Rails::AppBuilder
   
   def leftovers
     # Ask Questions to be used later
-    appname = ask("What is the name of your app? (all underscore please)")
+    appname = ask("What is the name of your app? (all lowercase please)")
     domain = ask("What is your domain going to be? (in format http://example.com)")
     sendgrid_username = ask("What is your sendgrid username?")
     sendgrid_password = ask("What is your sendgrid password?")
