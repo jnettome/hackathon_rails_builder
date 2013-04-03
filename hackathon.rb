@@ -8,6 +8,7 @@ class AppBuilder < Rails::AppBuilder
     @generator.gem "bootstrap-sass"
     @generator.gem "simple_form"
     @generator.gem "ember-rails"
+    @generator.gem "use_js_please"
     @generator.gem "sendgrid"
     @generator.gem "pg"
     @generator.gem "heroku"
@@ -46,12 +47,23 @@ class AppBuilder < Rails::AppBuilder
   def leftovers
     # Get the gems
     run 'bundle install'
+    # Require Javascript
+    generate 'usejsplease:install'
+    
+    # Add Ember
+    gsub_file 'config/environments/development.rb', /^end$/, "  config.ember.variant = :development
+end"
+    gsub_file 'config/environments/production.rb', /^end$/, "  config.ember.variant = :production
+end"
+    generate 'ember:bootstrap'
 
-    # Add Configuration for Ember
-    gsub_file 'config/environments/development.rb', /\Aend\z/, "  config.ember.variant = :development
-end"
-    gsub_file 'config/environments/production.rb', /\Aend\z/, "  config.ember.variant = :production
-end"
+    # Add Bootstrap
+    gsub_file 'app/assets/stylesheets/application.css', /^$/, '@import "bootstrap";'
+    gsub_file 'app/assets/javascripts/application.js', /\/\/= require_tree/, "//= require bootstrap
+//= require_tree"
+
+    # Add Simple Form
+    generate 'simple_form:install --bootstrap'
 
     # Setting up the Testing Environment
     generate 'rspec:install'
@@ -169,8 +181,8 @@ ActionMailer::Base.smtp_settings = {
     git add: ".", commit: "-m 'initial commit'"
 
     # Add to Heroku - You should already have the Heroku Toolbelt installed
-    run 'heroku create'
-    run 'git push heroku master'
+    # run 'heroku create'
+    # run 'git push heroku master'
 
   end
 end
