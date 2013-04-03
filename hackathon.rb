@@ -27,8 +27,10 @@ class AppBuilder < Rails::AppBuilder
     # Development tools
     @generator.gem "rspec-rails", group: [:development, :test]
     @generator.gem "capybara", group: [:test]
+    @generator.gem "capybara-email", group: [:test]
     @generator.gem "fabrication", group: [:test]
     @generator.gem "spork", group: [:test] 
+    @generator.gem "database_cleaner", group: [:test]
     @generator.gem "shoulda-matchers", group: [:test]
     @generator.gem "better_errors", group: [:development]
     @generator.gem "binding_of_caller", group: [:development]
@@ -45,17 +47,32 @@ class AppBuilder < Rails::AppBuilder
   end
   
   def leftovers
+    # Ask Questions to be used later
+    appname = ask("What is the name of your app? (all underscore please)")
+    domain = ask("What is your domain going to be? (in format http://example.com)")
+    sendgrid_username = ask("What is your sendgrid username?")
+    sendgrid_password = ask("What is your sendgrid password?")
+    twitter_key = ask("What is your twitter api key?")
+    twitter_secret = ask("What is your twitter secret key?")
+    stripe_api_key = ask("What is your Stripe api key?")
+    stripe_public_key = ask("What is your stripe public key?")
+    facebook_key = ask("What is your facebook key?")
+    facebook_secret = ask("What is your facebook secret key?")
+
     # Get the gems
     run 'bundle install'
+
     # Require Javascript
     generate 'usejsplease:install'
-    
+
     # Add Ember
+    generate 'ember:bootstrap'
     gsub_file 'config/environments/development.rb', /^end$/, "  config.ember.variant = :development
+end"
+    gsub_file 'config/environments/test.rb', /^end$/, "  config.ember.variant = :development
 end"
     gsub_file 'config/environments/production.rb', /^end$/, "  config.ember.variant = :production
 end"
-    generate 'ember:bootstrap'
 
     # Add Bootstrap
     gsub_file 'app/assets/stylesheets/application.css', /^$/, '@import "bootstrap";'
@@ -132,7 +149,7 @@ end
 Spork.each_run do
   # This code will be run each time you run your specs.
 end
-    RUBY
+RUBY
 
     # Generic Splash Page
     generate :controller, "pages index about"
@@ -141,13 +158,36 @@ end
 
     # Create a place for API Keys
     generate 'figaro:install'
-
     remove_file 'config/application.yml'
+    create_file 'config/application.yml', <<-YML
+# Add application configuration variables here, as shown below.
+DOMAIN: #{domain}
+SENDGRID_USERNAME: #{sendgrid_username}
+SENDGRID_PASSWORD: #{sendgrid_password}
+TWITTER_KEY: #{twitter_key}
+TWITTER_SECRET: #{twitter_secret}
+FACEBOOK_KEY: #{facebook_key}
+FACEBOOK_SECRET: #{facebook_secret}
+STRIPE_API_KEY: #{stripe_api_key}
+STRIPE_PUBLIC_KEY: #{stripe_public_key}
+YML
+    create_file 'config/application-sample.yml', <<-TXT
+# Add application configuration variables here, as shown below.
+DOMAIN:
+SENDGRID_USERNAME: 
+SENDGRID_PASSWORD:
+TWITTER_KEY:
+TWITTER_SECRET:
+FACEBOOK_KEY:
+FACEBOOK_SECRET:
+STRIPE_API_KEY:
+STRIPE_PUBLIC_KEY:
+TXT
 
     # Sublime Text Support for Better Errors
     create_file "config/initializers/better_errors.rb", <<-RUBY
 BetterErrors.editor = :sublime if defined? BetterErrors
-    RUBY
+RUBY
 
     create_file "config/initializers/setup_mail.rb", <<-RUBY
 ActionMailer::Base.smtp_settings = {
@@ -159,20 +199,43 @@ ActionMailer::Base.smtp_settings = {
   user_name: ENV["SENDGRID_USERNAME"],
   password: ENV["SENDGRID_PASSWORD"]
 }
-  RUBY
+RUBY
 
     generate "devise:install"
     # "config.scoped_views = true" inside "config/initializers/devise.rb".
     # config.omniauth :github, 'APP_ID', 'APP_SECRET', :scope => 'user,public_repo'
     generate "devise User"
     generate "devise:views users"
-    generate "devise Admin"
-    generate "devise:views admins"
+
+    # Set up Postgres Locally
+    remove_file 'config/database.yml'
+    create_file 'config/database.yml', <<-YML
+development:
+  adapter: postgresql
+  database: #{appname}_development
+  host: localhost
+  pool: 5
+  timeout: 5000
+  host_names:
+    - "localhost"
+
+# Warning: The database defined as "test" will be erased and
+# re-generated from your development database when you run "rake".
+# Do not set this db to the same as development or production.
+test:
+  adapter: postgresql
+  database: #{appname}_test
+  host: localhost
+  pool: 5
+  timeout: 5000
+  host_names:
+    - test.localhost
+YML
 
     # Rake the DB
     run 'rake db:migrate'
 
-    # Add Database and API keys to gitignore
+    # Add Database to .gitignore
     append_file ".gitignore", "config/database.yml"
     run "cp config/database.yml config/example_database.yml"
 

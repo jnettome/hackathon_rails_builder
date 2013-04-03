@@ -2,7 +2,7 @@
 
 I love a good hackathon and this rails builder comes equipped with my favorite development environment so I can get up to speed faster. This builder creates an environment with:
   
-  * A Rails app with Postgres
+  * A Rails app with Postgres (make sure you have it locally installed)
   * Devise for creating accounts
   * Omniauth for Facebook, Twitter and Google b/c who likes signing up?
   * Twitter and Facebook (Koala) gems so your app can expand its reach 
