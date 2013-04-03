@@ -6,7 +6,7 @@ I love a good hackathon and this rails builder comes equipped with my favorite d
   * Devise for creating accounts
   * Omniauth for Facebook, Twitter and Google b/c who likes signing up?
   * Twitter and Facebook (Koala) gems so your app can expand its reach 
-  * Stripe and Dwolla integration because charging money is a good thing
+  * Stripe integration because charging money is a good thing
   * Slim for templating
   * Bootstrap for styling
   * Ember-Rails (b/c Javascript MV* frameworks are cool)
@@ -14,7 +14,7 @@ I love a good hackathon and this rails builder comes equipped with my favorite d
   * Rspec, Capybara, Fabrication and Jasmine test suite
   * Heroku Configuration and Deployment
   * E-mail through Sendgrid
-  * Git init and git commit, it's up to use to choose Bitbucket or Github
+  * Git init and git commit, it's up to you to use to choose Bitbucket or Github
 
 ## How To Use It
 
