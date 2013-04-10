@@ -171,10 +171,10 @@ TWITTER_KEY: #{twitter_key}
 TWITTER_SECRET: #{twitter_secret}
 FACEBOOK_KEY: #{facebook_key}
 FACEBOOK_SECRET: #{facebook_secret}
-STRIPE_TEST_SECRET_KEY = #{stripe_test_secret_key}
-STRIPE_TEST_PUBLISHABLE_KEY = #{stripe_test_publishable_key}
-STRIPE_LIVE_SECRET_KEY = #{stripe_live_secret_key}
-STRIPE_LIVE_PUBLISHABLE_KEY = #{stripe_live_publishable_key}
+STRIPE_TEST_SECRET_KEY: #{stripe_test_secret_key}
+STRIPE_TEST_PUBLISHABLE_KEY: #{stripe_test_publishable_key}
+STRIPE_LIVE_SECRET_KEY: #{stripe_live_secret_key}
+STRIPE_LIVE_PUBLISHABLE_KEY: #{stripe_live_publishable_key}
 YML
     create_file 'config/application-sample.yml', <<-TXT
 # Add application configuration variables here, as shown below.
@@ -185,10 +185,10 @@ TWITTER_KEY:
 TWITTER_SECRET:
 FACEBOOK_KEY:
 FACEBOOK_SECRET:
-STRIPE_TEST_SECRET_KEY = 
-STRIPE_TEST_PUBLISHABLE_KEY = 
-STRIPE_LIVE_SECRET_KEY = 
-STRIPE_LIVE_PUBLISHABLE_KEY = 
+STRIPE_TEST_SECRET_KEY: 
+STRIPE_TEST_PUBLISHABLE_KEY: 
+STRIPE_LIVE_SECRET_KEY:
+STRIPE_LIVE_PUBLISHABLE_KEY: 
 TXT
 
     # Sublime Text Support for Better Errors
@@ -211,7 +211,7 @@ RUBY
 
     generate "devise:install"
     gsub_file "config/devise.rb", /# config.omniauth :github, 'APP_ID', 'APP_SECRET', :scope => 'user,public_repo'/, "config.omniauth :twitter, 'TWITTER_KEY', 'TWITTER_SECRET'
-config.omniauth :facebook, 'FACEBOOK_KEY', 'FACEBOOK_SECRET'"
+  config.omniauth :facebook, 'FACEBOOK_KEY', 'FACEBOOK_SECRET'"
     generate "devise User"
     generate "devise:views users"
 
