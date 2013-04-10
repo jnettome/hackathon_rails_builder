@@ -208,9 +208,10 @@ ActionMailer::Base.smtp_settings = {
 }
 RUBY
 
+
     generate "devise:install"
-    # "config.scoped_views = true" inside "config/initializers/devise.rb".
-    # config.omniauth :github, 'APP_ID', 'APP_SECRET', :scope => 'user,public_repo'
+    gsub_file "config/devise.rb", /# config.omniauth :github, 'APP_ID', 'APP_SECRET', :scope => 'user,public_repo'/, "config.omniauth :twitter, 'TWITTER_KEY', 'TWITTER_SECRET'
+config.omniauth :facebook, 'FACEBOOK_KEY', 'FACEBOOK_SECRET'"
     generate "devise User"
     generate "devise:views users"
 
