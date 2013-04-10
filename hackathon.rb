@@ -18,6 +18,7 @@ class AppBuilder < Rails::AppBuilder
     @generator.gem "figaro"
     # User records
     @generator.gem "devise"
+    @generator.gem "cancan"
     @generator.gem "omniauth-twitter"
     # Social Media
     @generator.gem "twitter"
@@ -54,8 +55,10 @@ class AppBuilder < Rails::AppBuilder
     sendgrid_password = ask("What is your sendgrid password?")
     twitter_key = ask("What is your twitter api key?")
     twitter_secret = ask("What is your twitter secret key?")
-    stripe_api_key = ask("What is your Stripe api key?")
-    stripe_public_key = ask("What is your stripe public key?")
+    stripe_test_secret_key = ask("What is your Stripe test secret key?")
+    stripe_test_publishable_key = ask("What is your Stripe test publishable key?")
+    stripe_live_secret_key = ask("What is your Stripe live secret key?")
+    stripe_live_publishable_key = ask("What is your Stripe live publishable key?")
     facebook_key = ask("What is your facebook key?")
     facebook_secret = ask("What is your facebook secret key?")
 
@@ -64,6 +67,10 @@ class AppBuilder < Rails::AppBuilder
 
     # Require Javascript
     generate 'usejsplease:install'
+    
+    # Add Bootstrap
+    gsub_file 'app/assets/stylesheets/application.css', /^$/, '@import "bootstrap";'
+    gsub_file 'app/assets/javascripts/application.js', /\/\/= require_tree/, "//= require bootstrap"
 
     # Add Ember
     generate 'ember:bootstrap'
@@ -74,10 +81,6 @@ end"
     gsub_file 'config/environments/production.rb', /^end$/, "  config.ember.variant = :production
 end"
 
-    # Add Bootstrap
-    gsub_file 'app/assets/stylesheets/application.css', /^$/, '@import "bootstrap";'
-    gsub_file 'app/assets/javascripts/application.js', /\/\/= require_tree/, "//= require bootstrap
-//= require_tree"
 
     # Add Simple Form
     generate 'simple_form:install --bootstrap'
@@ -168,8 +171,10 @@ TWITTER_KEY: #{twitter_key}
 TWITTER_SECRET: #{twitter_secret}
 FACEBOOK_KEY: #{facebook_key}
 FACEBOOK_SECRET: #{facebook_secret}
-STRIPE_API_KEY: #{stripe_api_key}
-STRIPE_PUBLIC_KEY: #{stripe_public_key}
+STRIPE_TEST_SECRET_KEY = #{stripe_test_secret_key}
+STRIPE_TEST_PUBLISHABLE_KEY = #{stripe_test_publishable_key}
+STRIPE_LIVE_SECRET_KEY = #{stripe_live_secret_key}
+STRIPE_LIVE_PUBLISHABLE_KEY = #{stripe_live_publishable_key}
 YML
     create_file 'config/application-sample.yml', <<-TXT
 # Add application configuration variables here, as shown below.
@@ -180,8 +185,10 @@ TWITTER_KEY:
 TWITTER_SECRET:
 FACEBOOK_KEY:
 FACEBOOK_SECRET:
-STRIPE_API_KEY:
-STRIPE_PUBLIC_KEY:
+STRIPE_TEST_SECRET_KEY = 
+STRIPE_TEST_PUBLISHABLE_KEY = 
+STRIPE_LIVE_SECRET_KEY = 
+STRIPE_LIVE_PUBLISHABLE_KEY = 
 TXT
 
     # Sublime Text Support for Better Errors
@@ -233,6 +240,7 @@ test:
 YML
 
     # Rake the DB
+    run 'rake db:create'
     run 'rake db:migrate'
 
     # Add Database to .gitignore
@@ -244,8 +252,9 @@ YML
     git add: ".", commit: "-m 'initial commit'"
 
     # Add to Heroku - You should already have the Heroku Toolbelt installed
-    # run 'heroku create'
+    # run 'heroku create #{appname}'
     # run 'git push heroku master'
+    # run 'rake figaro:heroku'
 
   end
 end
