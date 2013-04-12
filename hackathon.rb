@@ -4,43 +4,6 @@ class AppBuilder < Rails::AppBuilder
   end
   
   def gemfile
-    super
-    @generator.gem "bootstrap-sass"
-    @generator.gem "simple_form"
-    @generator.gem "ember-rails"
-    @generator.gem "use_js_please"
-    @generator.gem "sendgrid"
-    @generator.gem "pg"
-    @generator.gem "heroku"
-    @generator.gem "slim"
-    @generator.gem "draper"
-    # For Environment Keys
-    @generator.gem "figaro"
-    # User records
-    @generator.gem "devise"
-    @generator.gem "cancan"
-    @generator.gem "omniauth-twitter"
-    # Social Media
-    @generator.gem "twitter"
-    @generator.gem "twitter-text"
-    # Money
-    @generator.gem "stripe"
-    # Development tools
-    @generator.gem "rspec-rails", group: [:development, :test]
-    @generator.gem "capybara", group: [:test]
-    @generator.gem "capybara-email", group: [:test]
-    @generator.gem "fabrication", group: [:test]
-    @generator.gem "spork", group: [:test] 
-    @generator.gem "database_cleaner", group: [:test]
-    @generator.gem "shoulda-matchers", group: [:test]
-    @generator.gem "better_errors", group: [:development]
-    @generator.gem "binding_of_caller", group: [:development]
-    @generator.gem "letter_opener", group: [:development]
-    @generator.gem "rb-fsevent", group: [:development]
-    @generator.gem "guard-rspec", group: [:test]
-    @generator.gem "guard-spork", group: [:test]
-    @generator.gem "guard-jasmine", group: [:test]
-    @generator.gem "guard-livereload", group: [:test]
   end
 
   def test
@@ -48,6 +11,72 @@ class AppBuilder < Rails::AppBuilder
   end
   
   def leftovers
+    create_file 'Gemfile', <<-TXT
+source 'https://rubygems.org'
+
+ruby '2.0.0'
+gem 'rails', '4.0.0.beta1'
+
+gem 'sqlite3'
+
+
+# Gems used only for assets and not required
+# in production environments by default.
+group :assets do
+  gem 'sass-rails',   '~> 3.2.3'
+  gem 'coffee-rails', '~> 3.2.1'
+  gem "bootstrap-sass"
+  gem 'uglifier', '>= 1.0.3'
+end
+
+gem 'jquery-rails'
+
+group :development, :test do
+  gem "rspec-rails"
+  gem "jasminerice"
+end
+
+group :development do
+  gem "better_errors"
+  gem "binding_of_caller"
+  gem "letter_opener"
+  gem "annotate"
+end
+
+group :test do
+  gem "capybara"
+  gem "capybara-email"
+  gem "fabrication"
+  gem "spork"
+  gem "database_cleaner"
+  gem "shoulda-matchers"
+  gem "rb-fsevent", :group => [:development]
+  gem "guard-rspec"
+  gem "guard-spork"
+  gem "guard-jasmine"
+  gem "guard-livereload"
+  gem "guard-annotate"
+end
+
+gem "slim"
+gem "simple_form"
+gem "ember-rails"
+gem "use_js_please"
+gem "sendgrid"
+gem "pg"
+gem "heroku"
+gem "draper"
+gem "figaro"
+gem "devise"
+gem "omniauth-twitter"
+gem "omniauth-facebook"
+gem "koala"
+gem "twitter"
+gem "twitter-text"
+gem "stripe"
+
+TXT
+
     # Ask Questions to be used later
     appname = ask("What is the name of your app? (all lowercase please)")
     domain = ask("What is your domain going to be? (in format http://example.com)")
@@ -87,10 +116,13 @@ end"
 
     # Setting up the Testing Environment
     generate 'rspec:install'
+    generate 'jasminerice:install'
     run 'spork rspec --bootstrap'
     run 'guard init rspec'
     run 'guard init spork'
     run 'guard init livereload'
+    run 'guard init annotate'
+    run 'guard init jasmine'
     create_file 'spec/support/mailer_macros.rb', <<-RUBY
 module MailerMacros
   def last_email
@@ -211,7 +243,7 @@ RUBY
 
     generate "devise:install"
     gsub_file "config/devise.rb", /# config.omniauth :github, 'APP_ID', 'APP_SECRET', :scope => 'user,public_repo'/, "config.omniauth :twitter, 'TWITTER_KEY', 'TWITTER_SECRET'
-  config.omniauth :facebook, 'FACEBOOK_KEY', 'FACEBOOK_SECRET'"
+  config.omniauth :facebook, 'FACEBOOK_KEY', 'FACEBOOK_SECRET', strategy_class: OmniAuth::Strategies::Facebook"
     generate "devise User"
     generate "devise:views users"
 
