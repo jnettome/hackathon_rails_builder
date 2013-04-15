@@ -68,7 +68,6 @@ gem "ember-rails"
 gem "use_js_please"
 gem "sendgrid"
 gem "pg"
-gem "heroku"
 gem "draper"
 gem "figaro"
 
@@ -323,6 +322,7 @@ test:
   timeout: 5000
   host_names:
     - test.localhost
+
 YML
 
     # Rake the DB
@@ -333,6 +333,10 @@ YML
     append_file ".gitignore", "config/database.yml"
     run "cp config/database.yml config/example_database.yml"
 
+    # Add initialization to application.rb
+    gsub 'config/application.rb', /^end/, "# Compile assets without touching the database
+  config.assets.initialize_on_precompile = false
+end"
 
     # Initialize Git
     git :init
@@ -342,6 +346,7 @@ YML
     # run 'heroku create #{appname}'
     # run 'git push heroku master'
     # run 'rake figaro:heroku'
+    # run 'heroku run rake db:migrate'
 
   end
 end

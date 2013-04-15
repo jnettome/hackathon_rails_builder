@@ -25,6 +25,8 @@ Second, isntead of doing 'rails new myapp' enter this into your CLI intsead:
 
   rails new blog -b hackathon.rb
 
+Two Caveats, make sure you have ruby 2.0.0 installed and the Heroku Toolbelt
+
 ## Please fork and push!
 
 I would love to see what other environments people use.
