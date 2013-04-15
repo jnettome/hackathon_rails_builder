@@ -4,6 +4,7 @@ class AppBuilder < Rails::AppBuilder
   end
   
   def gemfile
+    # Keep this empty so Rails does not generate a default Gemfile
   end
 
   def test
@@ -15,7 +16,7 @@ class AppBuilder < Rails::AppBuilder
 source 'https://rubygems.org'
 
 ruby '2.0.0'
-gem 'rails', '4.0.0.beta1'
+gem 'rails', '3.2.13'
 
 gem 'sqlite3'
 
@@ -23,9 +24,11 @@ gem 'sqlite3'
 # Gems used only for assets and not required
 # in production environments by default.
 group :assets do
-  gem 'sass-rails',   '4.0.0.beta1'
-  gem 'coffee-rails', '4.0.0.beta1'
-  gem "bootstrap-sass"
+  gem 'sass-rails'
+  gem 'compass-rails'
+  gem 'coffee-rails'
+  gem 'bootstrap-sass'
+  gem 'font-awesome-rails'
   gem 'uglifier'
 end
 
@@ -41,6 +44,7 @@ group :development do
   gem "binding_of_caller"
   gem "letter_opener"
   gem "annotate"
+  gem "sextant"
 end
 
 group :test do
@@ -67,14 +71,18 @@ gem "pg"
 gem "heroku"
 gem "draper"
 gem "figaro"
+
+# User models and authorization
 gem "devise"
+gem "cancan"
+gem "rolify", :git => "git://github.com/EppO/rolify.git"
+
 gem "omniauth-twitter"
 gem "omniauth-facebook"
 gem "koala"
 gem "twitter"
 gem "twitter-text"
 gem "stripe"
-
 TXT
 
     # Ask Questions to be used later
@@ -109,7 +117,6 @@ end"
 end"
     gsub_file 'config/environments/production.rb', /^end$/, "  config.ember.variant = :production
 end"
-
 
     # Add Simple Form
     generate 'simple_form:install --bootstrap'
@@ -197,16 +204,16 @@ RUBY
     create_file 'config/application.yml', <<-YML
 # Add application configuration variables here, as shown below.
 DOMAIN: #{domain}
-SENDGRID_USERNAME: #{sendgrid_username}
-SENDGRID_PASSWORD: #{sendgrid_password}
-TWITTER_KEY: #{twitter_key}
-TWITTER_SECRET: #{twitter_secret}
-FACEBOOK_KEY: #{facebook_key}
-FACEBOOK_SECRET: #{facebook_secret}
-STRIPE_TEST_SECRET_KEY: #{stripe_test_secret_key}
-STRIPE_TEST_PUBLISHABLE_KEY: #{stripe_test_publishable_key}
-STRIPE_LIVE_SECRET_KEY: #{stripe_live_secret_key}
-STRIPE_LIVE_PUBLISHABLE_KEY: #{stripe_live_publishable_key}
+SENDGRID_USERNAME: "#{sendgrid_username}"
+SENDGRID_PASSWORD: "#{sendgrid_password}"
+TWITTER_KEY: "#{twitter_key}"
+TWITTER_SECRET: "#{twitter_secret}"
+FACEBOOK_KEY: "#{facebook_key}"
+FACEBOOK_SECRET: "#{facebook_secret}"
+STRIPE_TEST_SECRET_KEY: "#{stripe_test_secret_key}"
+STRIPE_TEST_PUBLISHABLE_KEY: "#{stripe_test_publishable_key}"
+STRIPE_LIVE_SECRET_KEY: "#{stripe_live_secret_key}"
+STRIPE_LIVE_PUBLISHABLE_KEY: "#{stripe_live_publishable_key}"
 YML
     create_file 'config/application-sample.yml', <<-TXT
 # Add application configuration variables here, as shown below.
@@ -240,12 +247,58 @@ ActionMailer::Base.smtp_settings = {
 }
 RUBY
 
-
+    # Create Users
     generate "devise:install"
-    gsub_file "config/devise.rb", /# config.omniauth :github, 'APP_ID', 'APP_SECRET', :scope => 'user,public_repo'/, "config.omniauth :twitter, 'TWITTER_KEY', 'TWITTER_SECRET'
-  config.omniauth :facebook, 'FACEBOOK_KEY', 'FACEBOOK_SECRET', strategy_class: OmniAuth::Strategies::Facebook"
+    gsub_file "config/initializers/devise.rb", /# config.omniauth :github, 'APP_ID', 'APP_SECRET', :scope => 'user,public_repo'/, "config.omniauth :twitter, ENV['TWITTER_KEY'], ENV['TWITTER_SECRET'], :strategy_class => OmniAuth::Strategies::Twitter
+  config.omniauth :facebook, ENV['FACEBOOK_KEY'], ENV['FACEBOOK_SECRET'], :strategy_class => OmniAuth::Strategies::Facebook"
     generate "devise User"
     generate "devise:views users"
+    generate "migration AddNameToUsers first_name:string last_name:string"
+    remove_file 'app/models/user.rb'
+    create_file 'app/models/user.rb', <<-RUBY
+class User < ActiveRecord::Base
+  rolify
+  # Include default devise modules. Others available are:
+  # :token_authenticatable, :confirmable,
+  # :lockable, :timeoutable and :omniauthable
+  devise :database_authenticatable, :registerable,
+         :recoverable, :rememberable, :trackable, :validatable, :omniauthable
+
+  # Setup accessible (or protected) attributes for your model
+  attr_accessible :email, :password, :password_confirmation, :remember_me, :first_name, :last_name
+  # attr_accessible :title, :body
+
+  validates :email, presence: true, format: {with: /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i, message: "Invalid Email"}
+  validates :first_name, presence: true
+  validates :last_name, presence: true
+
+end
+RUBY
+    # Add authorization
+    generate 'cancan:ability'
+    generate 'rolify Role User'
+    remove_file 'app/models/ability.rb'
+    create_file 'app/models/ability.rb', <<-RUBY
+class Ability
+  include CanCan::Ability
+
+  def initialize(user)
+    # Define abilities for the passed in user here. For example:
+    #
+    user ||= User.new # guest user (not logged in)
+
+    alias_action :create, :read, :update, :destroy, :to => :crud
+
+    if user.has_role? :admin
+      can :manage, :all
+    else
+      can :crud, User
+      can :read, :all
+    end
+
+  end
+end
+RUBY
 
     # Set up Postgres Locally
     remove_file 'config/database.yml'
@@ -279,6 +332,7 @@ YML
     # Add Database to .gitignore
     append_file ".gitignore", "config/database.yml"
     run "cp config/database.yml config/example_database.yml"
+
 
     # Initialize Git
     git :init
