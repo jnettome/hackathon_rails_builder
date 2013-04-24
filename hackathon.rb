@@ -15,11 +15,7 @@ class AppBuilder < Rails::AppBuilder
     create_file 'Gemfile', <<-TXT
 source 'https://rubygems.org'
 
-ruby '2.0.0'
 gem 'rails', '3.2.13'
-
-gem 'sqlite3'
-
 
 # Gems used only for assets and not required
 # in production environments by default.
@@ -48,18 +44,19 @@ group :development do
 end
 
 group :test do
-  gem "capybara"
-  gem "capybara-email"
-  gem "fabrication"
-  gem "spork"
-  gem "database_cleaner"
-  gem "shoulda-matchers"
-  gem "rb-fsevent", :group => [:development]
-  gem "guard-rspec"
-  gem "guard-spork"
-  gem "guard-jasmine"
-  gem "guard-livereload"
-  gem "guard-annotate"
+  gem 'capybara'
+  gem 'capybara-webkit'
+  gem 'factory_girl_rails'
+  gem 'launchy'
+  gem 'database_cleaner'
+  gem 'shoulda-matchers'
+  gem 'capybara-email'
+  gem 'terminal-notifier-guard', require: false
+  gem 'rb-fsevent', require: false
+  gem 'vcr'
+  gem 'fakeweb'
+  gem 'poltergeist'
+  gem 'validates_timeliness'
 end
 
 gem "slim"
@@ -74,32 +71,71 @@ gem "figaro"
 # User models and authorization
 gem "devise"
 gem "cancan"
-gem "rolify", :git => "git://github.com/EppO/rolify.git"
+gem "rolify", git: "git://github.com/EppO/rolify.git"
 
+# For Social Media
 gem "omniauth-twitter"
 gem "omniauth-facebook"
 gem "koala"
 gem "twitter"
 gem "twitter-text"
-gem "stripe"
-TXT
 
-    # Ask Questions to be used later
+# For $$$
+gem "stripe", git: 'https://github.com/stripe/stripe-ruby'
+
+# For File Uploads
+gem 'carrierwave'
+gem 'rmagick'
+gem 'fog'
+gem 'carrierwave_direct'
+
+# For Queueing and Background Jobs
+gem 'redis'
+gem 'sidekiq'
+TXT
     appname = ask("What is the name of your app? (all lowercase please)")
-    domain = ask("What is your domain going to be? (in format http://example.com)")
-    sendgrid_username = ask("What is your sendgrid username?")
-    sendgrid_password = ask("What is your sendgrid password?")
-    twitter_key = ask("What is your twitter api key?")
-    twitter_secret = ask("What is your twitter secret key?")
-    stripe_test_secret_key = ask("What is your Stripe test secret key?")
-    stripe_test_publishable_key = ask("What is your Stripe test publishable key?")
-    stripe_live_secret_key = ask("What is your Stripe live secret key?")
-    stripe_live_publishable_key = ask("What is your Stripe live publishable key?")
-    facebook_key = ask("What is your facebook key?")
-    facebook_secret = ask("What is your facebook secret key?")
+
+  # Set up Postgres Locally
+    remove_file 'config/database.yml'
+    create_file 'config/database.yml', <<-YML
+development:
+  adapter: postgresql
+  database: #{appname}_development
+  host: localhost
+  pool: 5
+  timeout: 5000
+  host_names:
+    - "localhost"
+
+# Warning: The database defined as "test" will be erased and
+# re-generated from your development database when you run "rake".
+# Do not set this db to the same as development or production.
+test:
+  adapter: postgresql
+  database: #{appname}_test
+  host: localhost
+  pool: 5
+  timeout: 5000
+  host_names:
+    - test.localhost
+
+YML
+    # Ask Questions to be used later
+    # domain = ask("What is your domain going to be? (in format http://example.com)")
+    # sendgrid_username = ask("What is your sendgrid username?")
+    # sendgrid_password = ask("What is your sendgrid password?")
+    # twitter_key = ask("What is your twitter api key?")
+    # twitter_secret = ask("What is your twitter secret key?")
+    # stripe_test_secret_key = ask("What is your Stripe test secret key?")
+    # stripe_test_publishable_key = ask("What is your Stripe test publishable key?")
+    # stripe_live_secret_key = ask("What is your Stripe live secret key?")
+    # stripe_live_publishable_key = ask("What is your Stripe live publishable key?")
+    # facebook_key = ask("What is your facebook key?")
+    # facebook_secret = ask("What is your facebook secret key?")
 
     # Get the gems
     run 'bundle install'
+    run 'rake db:create'
 
     # Require Javascript
     generate 'usejsplease:install'
@@ -125,7 +161,6 @@ end"
     generate 'jasminerice:install'
     run 'spork rspec --bootstrap'
     run 'guard init rspec'
-    run 'guard init spork'
     run 'guard init livereload'
     run 'guard init annotate'
     run 'guard init jasmine'
@@ -142,53 +177,76 @@ end
     RUBY
     remove_file 'spec/spec_helper.rb'
     create_file 'spec/spec_helper.rb', <<-RUBY
-require 'spork'
-Spork.prefork do
-  # This file is copied to spec/ when you run 'rails generate rspec:install'
-  ENV["RAILS_ENV"] ||= 'test'
-  require File.expand_path("../../config/environment", __FILE__)
-  require 'rspec/rails'
-  require 'capybara/rspec'
-  require 'capybara/email/rspec'
-  require 'database_cleaner'
+# This file is copied to spec/ when you run 'rails generate rspec:install'
+ENV["RAILS_ENV"] ||= 'test'
+require File.expand_path("../../config/environment", __FILE__)
+require 'rspec/rails'
 
-  Capybara.javascript_driver = :webkit
-  # Requires supporting ruby files with custom matchers and macros, etc,
-  # in spec/support/ and its subdirectories.
-  Dir[Rails.root.join("spec/support/**/*.rb")].each {|f| require f}
+require 'rack/test'
+require 'capybara/rspec'
+require 'capybara/email/rspec'
+require 'capybara/poltergeist'
 
-  RSpec.configure do |config|
-    # Modules from spec/support
-    config.include(MailerMacros)
-    config.filter_run focus: true
-    config.run_all_when_everything_filtered = true
-    config.mock_with :rspec
-    config.use_transactional_fixtures = true
-    config.treat_symbols_as_metadata_keys_with_true_values = true
+Capybara.javascript_driver = :poltergeist
 
+# Requires supporting ruby files with custom matchers and macros, etc,
+# in spec/support/ and its subdirectories.
+Dir[Rails.root.join("spec/support/**/*.rb")].each {|f| require f}
 
-    config.before(:each) do 
-      reset_email
-    end
+RSpec.configure do |config|
+  # If you're not using ActiveRecord, or you'd prefer not to run each of your
+  # examples within a transaction, remove the following line or assign false
+  # instead of true.
+  config.use_transactional_fixtures = false
 
-    config.before(:suite) do
-      DatabaseCleaner.clean_with(:truncation)
-      DatabaseCleaner.strategy = :transaction
-    end
-    
-    config.before(:each, :js => true) do
-      DatabaseCleaner.strategy = :truncation
-    end
+  # If true, the base class of anonymous controllers will be inferred
+  # automatically. This will be the default behavior in future versions of
+  # rspec-rails.
+  config.infer_base_class_for_anonymous_controllers = false
 
-    config.after(:each) do
-      DatabaseCleaner.clean
-    end
+  # Run specs in random order to surface order dependencies. If you find an
+  # order dependency and want to debug it, you can fix the order by providing
+  # the seed, which is printed after each run.
+  #     --seed 1234
+  config.order = "random"
 
+  # Modules from spec/support
+  config.include(MailerMacros)
+  config.include(FactoryGirl::Syntax::Methods)
+  config.include(Rack::Test::Methods)
+
+  config.before(:each) do 
+    reset_email
+  end
+
+  config.before(:suite) do
+    DatabaseCleaner.strategy = :transaction
+    DatabaseCleaner.clean_with(:transaction)
+  end
+
+  config.before(:each) do
+    DatabaseCleaner.start
+  end
+
+  config.after(:each) do
+    DatabaseCleaner.clean
+  end
+
+end
+RUBY
+
+    # Create API Helper
+    create_file "spec/support/api_helper.rb", <<-RUBY
+module ApiHelper
+  include Rack::Test::Methods
+
+  def app
+    Rails.application
   end
 end
 
-Spork.each_run do
-  # This code will be run each time you run your specs.
+RSpec.configure do |c|
+  c.include ApiHelper, :type => :api
 end
 RUBY
 
@@ -200,20 +258,7 @@ RUBY
     # Create a place for API Keys
     generate 'figaro:install'
     remove_file 'config/application.yml'
-    create_file 'config/application.yml', <<-YML
-# Add application configuration variables here, as shown below.
-DOMAIN: #{domain}
-SENDGRID_USERNAME: "#{sendgrid_username}"
-SENDGRID_PASSWORD: "#{sendgrid_password}"
-TWITTER_KEY: "#{twitter_key}"
-TWITTER_SECRET: "#{twitter_secret}"
-FACEBOOK_KEY: "#{facebook_key}"
-FACEBOOK_SECRET: "#{facebook_secret}"
-STRIPE_TEST_SECRET_KEY: "#{stripe_test_secret_key}"
-STRIPE_TEST_PUBLISHABLE_KEY: "#{stripe_test_publishable_key}"
-STRIPE_LIVE_SECRET_KEY: "#{stripe_live_secret_key}"
-STRIPE_LIVE_PUBLISHABLE_KEY: "#{stripe_live_publishable_key}"
-YML
+    
     create_file 'config/application-sample.yml', <<-TXT
 # Add application configuration variables here, as shown below.
 DOMAIN:
@@ -263,11 +308,12 @@ class User < ActiveRecord::Base
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :trackable, :validatable, :omniauthable
 
+
   # Setup accessible (or protected) attributes for your model
   attr_accessible :email, :password, :password_confirmation, :remember_me, :first_name, :last_name
   # attr_accessible :title, :body
 
-  validates :email, presence: true, format: {with: /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i, message: "Invalid Email"}
+  validates :email, presence: true
   validates :first_name, presence: true
   validates :last_name, presence: true
 
@@ -299,34 +345,7 @@ class Ability
 end
 RUBY
 
-    # Set up Postgres Locally
-    remove_file 'config/database.yml'
-    create_file 'config/database.yml', <<-YML
-development:
-  adapter: postgresql
-  database: #{appname}_development
-  host: localhost
-  pool: 5
-  timeout: 5000
-  host_names:
-    - "localhost"
 
-# Warning: The database defined as "test" will be erased and
-# re-generated from your development database when you run "rake".
-# Do not set this db to the same as development or production.
-test:
-  adapter: postgresql
-  database: #{appname}_test
-  host: localhost
-  pool: 5
-  timeout: 5000
-  host_names:
-    - test.localhost
-
-YML
-
-    # Rake the DB
-    run 'rake db:create'
     run 'rake db:migrate'
 
     # Add Database to .gitignore
@@ -334,7 +353,7 @@ YML
     run "cp config/database.yml config/example_database.yml"
 
     # Add initialization to application.rb
-    gsub 'config/application.rb', /^end/, "# Compile assets without touching the database
+    gsub_file 'config/application.rb', /^end$/, "# Compile assets without touching the database
   config.assets.initialize_on_precompile = false
 end"
 
