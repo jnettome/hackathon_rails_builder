@@ -142,7 +142,6 @@ YML
     
     # Add Bootstrap
     gsub_file 'app/assets/stylesheets/application.css', /^$/, '@import "bootstrap";'
-    gsub_file 'app/assets/javascripts/application.js', /\/\/= require_tree/, "//= require bootstrap"
 
     # Add Ember
     generate 'ember:bootstrap'
